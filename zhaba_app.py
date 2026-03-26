@@ -55,6 +55,144 @@ class Zhaba:
             print(f"🌟 УРОВЕНЬ ПОВЫШЕН! Теперь вы жаба {self.level} уровня.")
 
 
+class SwampGame:
+    """Движок игры 'Zhaba'."""
+    def __init__(self):
+        self.zhaba = None
+        self.running = True
+
+    def clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+    def draw_zhaba(self):
+        art = r"""
+             _   _
+            (.)_(.)
+         _ (   _   ) _
+        / \/`-----'\/ \
+      __\ ( (     ) ) /__
+      )   \ \     / /   (
+       )___/ \___/ \___(
+        """
+        print(art)
+
+    def startup(self):
+        self.clear_screen()
+        print("="*40)
+        print("       ПРОЕКТ: ZHABA (ЖАБА) v1.0")
+        print("="*40)
+        name = input("Как назовем вашего подопечного? ")
+        self.zhaba = Zhaba(name if name else "Геннадий")
+        print(f"\n{self.zhaba.name} вылупился из икринки...")
+        time.sleep(1.5)
+
+    def random_event(self):
+        """Случайные события в болоте."""
+        event = random.random()
+        if event < 0.15:
+            print("\n🦅 Тень сверху! Аист пролетел мимо. Вы потеряли 10 энергии от страха.")
+            self.zhaba.energy = max(0, self.zhaba.energy - 10)
+        elif event < 0.30:
+            print("\n⛈ Пошел дождь. Уровень слизи повысился!")
+            self.zhaba.slime_level += 5
+        elif event < 0.45:
+            print("\n💎 Вы нашли блестящую пуговицу в грязи. Бесполезно, но красиво.")
+            self.zhaba.inventory.append("Пуговица")
+        else:
+            print("\n🌿 В болоте сегодня спокойно...")
+
+    def game_loop(self):
+        while self.zhaba.is_alive and self.running:
+            self.clear_screen()
+            self.draw_zhaba()
+            self.zhaba.show_stats()
+            
+            print("Что будем делать?")
+            print("1. Охотиться на насекомых (Трата энергии, утоление голода)")
+            print("2. Медитировать на кувшинке (Восстановление энергии)")
+            print("3. Громко квакнуть (Призыв удачи/Опыт)")
+            print("4. Исследовать дальний камыш (Опасно!)")
+            print("5. Выход из игры")
+            
+            choice = input("Выберите действие (1-5): ")
+
+            if choice == "1":
+                self.action_hunt()
+            elif choice == "2":
+                self.action_rest()
+            elif choice == "3":
+                self.action_croak()
+            elif choice == "4":
+                self.action_explore()
+            elif choice == "5":
+                print("Сохранение жабьих сил... До встречи!")
+                self.running = False
+            else:
+                print("Жаба не понимает такой команды...")
+                time.sleep(1)
+
+            # Механика времени и выживания
+            self.zhaba.hunger += 5
+            self.zhaba.days_survived += 1
+            
+            if self.zhaba.hunger >= 100:
+                print("\n💀 Жаба умерла от голода...")
+                self.zhaba.is_alive = False
+            
+            if self.zhaba.hp <= 0:
+                print("\n💀 Жаба пала в бою...")
+                self.zhaba.is_alive = False
+
+            if self.zhaba.is_alive and self.running:
+                input("\nНажмите Enter, чтобы прожить следующий день...")
+                self.random_event()
+                time.sleep(1)
+
+    def action_hunt(self):
+        if self.zhaba.energy < 20:
+            print("Слишком мало энергии для прыжка!")
+            return
+        
+        self.zhaba.energy -= 20
+        catch = random.choice(["Муха", "Муха", "Стрекоза", "Ничего", "Пчела"])
+        
+        if catch == "Ничего":
+            print("Вы промахнулись языком! Муха улетела.")
+        elif catch == "Пчела":
+            print("🐝 Ой! Вы съели пчелу, она ужалила вас изнутри!")
+            self.zhaba.hp -= 15
+        else:
+            self.zhaba.eat(catch)
+
+    def action_rest(self):
+        print("🧘 Вы сидите на кувшинке и ловите дзен...")
+        self.zhaba.energy = min(100, self.zhaba.energy + 40)
+        self.zhaba.hp = min(self.zhaba.max_hp, self.zhaba.hp + 5)
+        time.sleep(1)
+
+    def action_croak(self):
+        sounds = ["КВААА!", "бре-ке-кекс!", "Ква?", "КРОАК!"]
+        print(f"\n📢 {self.zhaba.name} кричит: {random.choice(sounds)}")
+        self.zhaba.exp += 2
+        if random.random() < 0.2:
+            print("На ваш зов прилетела жирная Муха!")
+            self.zhaba.eat("Муха")
+        time.sleep(1)
+
+    def action_explore(self):
+        print("🔍 Вы прыгаете в неизведанные дебри...")
+        time.sleep(1)
+        danger = random.randint(1, 3)
+        if danger == 1:
+            print("🐍 Змея! Вы едва спаслись, но получили ранение.")
+            self.zhaba.hp -= 30
+        elif danger == 2:
+            print("✨ Вы нашли Тайную Запруду. Здесь много еды!")
+            self.zhaba.eat("Золотой комар")
+        else:
+            print("💎 Вы нашли старую блесну. Теперь вы — Жаба-Воин.")
+            self.zhaba.inventory.append("Блесна (+5 к крутости)")
+            self.zhaba.exp += 20
 
 if __name__ == "__main__":
     game = SwampGame()
