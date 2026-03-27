@@ -12,19 +12,14 @@ import traceback
 from config import EMAIL_CONFIG, WEBSOCKET_CONFIG, APP_CONFIG, LOGGING_CONFIG
 
 def setup_logger():
-    """Настройка логирования с ротацией файлов"""
-    
-    # Создаем логгер
     logger = logging.getLogger('zhaba')
     logger.setLevel(getattr(logging, LOGGING_CONFIG['log_level']))
     
-    # Создаем форматтер
     formatter = logging.Formatter(
         LOGGING_CONFIG['format'],
         datefmt=LOGGING_CONFIG['date_format']
     )
     
-    # Обработчик для файла с ротацией
     file_handler = logging.handlers.RotatingFileHandler(
         LOGGING_CONFIG['log_file'],
         maxBytes=LOGGING_CONFIG['max_bytes'],
@@ -34,19 +29,16 @@ def setup_logger():
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     
-    # Обработчик для консоли
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.DEBUG if APP_CONFIG['debug'] else logging.INFO)
     console_handler.setFormatter(formatter)
     
-    # Добавляем обработчики
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
     
-    # Добавляем обработчик для ошибок
     error_handler = logging.handlers.RotatingFileHandler(
         'error.log',
-        maxBytes=5 * 1024 * 1024,  # 5 MB
+        maxBytes=5 * 1024 * 1024,
         backupCount=3,
         encoding='utf-8'
     )
@@ -56,12 +48,9 @@ def setup_logger():
     
     return logger
 
-# Инициализируем логгер
 logger = setup_logger()
 
 class EmailSender:
-    """Класс для отправки email сообщений"""
-    
     def __init__(self, config):
         self.config = config
         self.smtp_server = config['smtp_server']
@@ -74,23 +63,19 @@ class EmailSender:
         logger.debug(f"SMTP сервер: {self.smtp_server}:{self.smtp_port}")
     
     def send_email(self, subject, message):
-        """Отправка email с указанной темой и сообщением"""
         start_time = datetime.now()
         logger.debug(f"Начало отправки email. Тема: {subject}")
         
         try:
-            # Создаем сообщение
             msg = MIMEMultipart()
             msg['From'] = self.email_from
             msg['To'] = self.email_to
             msg['Subject'] = subject
             
-            # Добавляем тело сообщения
             msg.attach(MIMEText(message, 'plain', 'utf-8'))
             
-            # Отправляем email
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls()  # Включаем шифрование
+                server.starttls()
                 server.login(self.email_from, self.email_password)
                 server.send_message(msg)
             
@@ -113,8 +98,6 @@ class EmailSender:
             return False
 
 class WebSocketServer:
-    """Класс WebSocket сервера"""
-    
     def __init__(self, email_sender, host, port):
         self.email_sender = email_sender
         self.host = host
@@ -126,11 +109,9 @@ class WebSocketServer:
         logger.info(f"WebSocket сервер инициализирован: {host}:{port}")
     
     async def handle_client(self, websocket, path):
-        """Обработка подключения клиента"""
         client_address = websocket.remote_address
         client_id = f"{client_address[0]}:{client_address[1]}"
         
-        # Проверяем лимит подключений
         if len(self.connected_clients) >= WEBSOCKET_CONFIG['max_connections']:
             logger.warning(f"Превышен лимит подключений. Отказ клиенту {client_id}")
             await websocket.close(1008, "Too many connections")
@@ -148,7 +129,6 @@ class WebSocketServer:
                 logger.info(f"Получено сообщение #{self.message_count} от {client_id}")
                 logger.debug(f"Размер сообщения: {message_size} байт")
                 
-                # Обрабатываем полученное сообщение
                 await self.process_message(websocket, message, client_id)
                 
         except websockets.exceptions.ConnectionClosed as e:
@@ -166,35 +146,27 @@ class WebSocketServer:
             logger.debug(f"Клиент {client_id} удален. Осталось клиентов: {len(self.connected_clients)}")
     
     async def process_message(self, websocket, message, client_id):
-        """Обработка полученного сообщения"""
         try:
-            # Пытаемся распарсить JSON
             try:
                 data = json.loads(message)
-                # Если JSON, то можно извлечь тему и сообщение
                 subject = data.get('subject', 'WebSocket сообщение')
                 content = data.get('message', message)
-                # Добавляем дополнительную информацию из JSON
                 if 'sender' in data:
                     content = f"Отправитель: {data['sender']}\n\n{content}"
                 logger.debug(f"JSON сообщение от {client_id}: subject={subject}")
                 
             except json.JSONDecodeError:
-                # Если не JSON, используем сообщение как есть
                 subject = "Новое сообщение из WebSocket"
                 content = message
                 logger.debug(f"Текстовое сообщение от {client_id}")
             
-            # Добавляем временную метку
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             formatted_message = f"Получено: {timestamp}\nОт клиента: {client_id}\n\n{content}"
             
             logger.info(f"Обработка сообщения от {client_id}, тема: {subject}")
             
-            # Отправляем email
             success = self.email_sender.send_email(subject, formatted_message)
             
-            # Отправляем ответ клиенту
             response = {
                 'status': 'success' if success else 'error',
                 'message': 'Сообщение отправлено на email' if success else 'Ошибка при отправке email',
@@ -223,7 +195,6 @@ class WebSocketServer:
                 logger.error(f"Не удалось отправить ответ клиенту {client_id}")
     
     async def start(self):
-        """Запуск WebSocket сервера"""
         logger.info("=" * 60)
         logger.info("ЗАПУСК WEBHOOK СЕРВЕРА")
         logger.info("=" * 60)
@@ -244,35 +215,28 @@ class WebSocketServer:
         logger.info(f"✅ WebSocket сервер запущен на ws://{self.host}:{self.port}")
         logger.info("Ожидание подключений...")
         
-        # Запускаем мониторинг
         asyncio.create_task(self.monitor_stats())
         
-        # Держим сервер запущенным
         await server.wait_closed()
     
     async def monitor_stats(self):
-        """Мониторинг статистики сервера"""
         while True:
-            await asyncio.sleep(60)  # Каждую минуту
+            await asyncio.sleep(60)
             logger.info(f"📊 Статистика: Сообщений: {self.message_count}, "
                        f"Ошибок: {self.error_count}, "
                        f"Клиентов: {len(self.connected_clients)}")
 
 async def main():
-    """Главная функция запуска приложения"""
     logger.info("🚀 Запуск приложения Zhaba...")
     
-    # Проверяем конфигурацию
     logger.debug("Проверка конфигурации...")
     logger.debug(f"Email конфиг: {EMAIL_CONFIG['email_from']} -> {EMAIL_CONFIG['email_to']}")
     logger.debug(f"WebSocket конфиг: {WEBSOCKET_CONFIG['host']}:{WEBSOCKET_CONFIG['port']}")
     
-    # Создаем экземпляр EmailSender
     try:
         email_sender = EmailSender(EMAIL_CONFIG)
         logger.info("✅ Email отправитель инициализирован")
         
-        # Тестовая проверка SMTP соединения
         logger.debug("Проверка SMTP соединения...")
         try:
             with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as test_server:
@@ -287,7 +251,6 @@ async def main():
         logger.debug(traceback.format_exc())
         return
     
-    # Создаем и запускаем WebSocket сервер
     websocket_server = WebSocketServer(
         email_sender,
         WEBSOCKET_CONFIG['host'],
