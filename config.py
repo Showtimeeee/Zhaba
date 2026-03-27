@@ -6,12 +6,25 @@ EMAIL_CONFIG = {
     'email_to': 'recipient@example.com',
 }
 
+
 WEBSOCKET_CONFIG = {
-    'host': 'localhost',
-    'port': 8765,             
+    'host': 'localhost', 
+    'port': 8765,       
+    'max_connections': 100,  
 }
 
+
 APP_CONFIG = {
-    'debug': True,            
+    'debug': True,           
     'max_message_size': 1024, 
+}
+
+
+LOGGING_CONFIG = {
+    'log_file': 'zhaba.log',       
+    'log_level': 'DEBUG',             
+    'max_bytes': 10 * 1024 * 1024,   
+    'backup_count': 5,         
+    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    'date_format': '%Y-%m-%d %H:%M:%S'
 }
