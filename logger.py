@@ -1,32 +1,40 @@
-import os
-from dotenv import load_dotenv
+import logging
+import logging.handlers
+import sys
+from config import LOGGING_CONFIG
 
-load_dotenv()
+def setup_logger():
+    logger = logging.getLogger("zhaba")
+    logger.setLevel(getattr(logging, LOGGING_CONFIG["log_level"]))
 
-EMAIL_CONFIG = {
-    'smtp_server': os.getenv('SMTP_SERVER', 'smtp.gmail.com'),
-    'smtp_port': int(os.getenv('SMTP_PORT', 587)),
-    'email_from': os.getenv('EMAIL_FROM'),
-    'email_password': os.getenv('EMAIL_PASSWORD'),
-    'email_to': os.getenv('EMAIL_TO'),
-}
+    formatter = logging.Formatter(
+        LOGGING_CONFIG["format"],
+        datefmt=LOGGING_CONFIG["date_format"]
+    )
 
-WEBSOCKET_CONFIG = {
-    'host': os.getenv('WS_HOST', 'localhost'),
-    'port': int(os.getenv('WS_PORT', 8765)),
-    'max_connections': int(os.getenv('WS_MAX_CONNECTIONS', 100)),
-}
+    file_handler = logging.handlers.RotatingFileHandler(
+        LOGGING_CONFIG["log_file"],
+        maxBytes=LOGGING_CONFIG["max_bytes"],
+        backupCount=LOGGING_CONFIG["backup_count"],
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-APP_CONFIG = {
-    'debug': os.getenv('DEBUG', 'true').lower() == 'true',
-    'max_message_size': int(os.getenv('MAX_MESSAGE_SIZE', 1024)),
-}
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
-LOGGING_CONFIG = {
-    'log_file': os.getenv('LOG_FILE', 'zhaba.log'),
-    'log_level': os.getenv('LOG_LEVEL', 'DEBUG'),
-    'max_bytes': int(os.getenv('LOG_MAX_BYTES', 10485760)),
-    'backup_count': int(os.getenv('LOG_BACKUP_COUNT', 5)),
-    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    'date_format': '%Y-%m-%d %H:%M:%S'
-}
+    error_handler = logging.handlers.RotatingFileHandler(
+        "error.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(formatter)
+    logger.addHandler(error_handler)
+
+    return logger
+
+logger = setup_logger()
