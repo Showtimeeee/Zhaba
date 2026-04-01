@@ -12,14 +12,14 @@ EMAIL_CONFIG = {
 }
 
 WEBSOCKET_CONFIG = {
-    'host': os.getenv('WS_HOST', 'localhost'),
+    'host': os.getenv('WS_HOST', '0.0.0.0'),
     'port': int(os.getenv('WS_PORT', 8765)),
     'max_connections': int(os.getenv('WS_MAX_CONNECTIONS', 100)),
 }
 
 APP_CONFIG = {
     'debug': os.getenv('DEBUG', 'true').lower() == 'true',
-    'max_message_size': int(os.getenv('MAX_MESSAGE_SIZE', 1024)),
+    'max_message_size': int(os.getenv('MAX_MESSAGE_SIZE', 1048576)),
 }
 
 LOGGING_CONFIG = {
