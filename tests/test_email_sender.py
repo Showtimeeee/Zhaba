@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 from zhaba_app import EmailSender
 
-
 class TestEmailSender:
+    
     @patch('zhaba_app.smtplib.SMTP')
     def test_send_email_success(self, mock_smtp, email_config):
         email_sender = EmailSender(email_config)
