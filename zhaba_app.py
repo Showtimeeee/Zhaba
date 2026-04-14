@@ -6,8 +6,9 @@ import traceback
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from config import EMAIL_CONFIG, WEBSOCKET_CONFIG, APP_CONFIG, LOGGING_CONFIG
+from config import EMAIL_CONFIG, WEBSOCKET_CONFIG, APP_CONFIG
 from logger import logger
+
 
 class EmailSender:
     def __init__(self, config):
