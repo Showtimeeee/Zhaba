@@ -38,8 +38,3 @@ def email_config():
         'email_password': 'password123',
         'email_to': 'recipient@example.com'
     }
-
-@pytest.fixture
-def websocket_server(mock_email_sender):
-    from zhaba_app import WebSocketServer
-    return WebSocketServer(mock_email_sender, 'localhost', 8765)
