@@ -2,10 +2,7 @@
 
 <img width="387" height="218" alt="zhaba_logo" src="https://github.com/user-attachments/assets/9a083e69-ef48-40ec-a76a-0eb347718776" />
 
-
-
-<img width="642" height="1400" alt="Снимок экрана (218)" src="https://github.com/user-attachments/assets/650cefed-f5cb-4552-aa62-675047c3c9b9" />
-
+<img width="692" height="190" alt="Снимок экрана (218)" src="https://github.com/user-attachments/assets/e3534d6d-43fa-4abf-bfbe-981024c7c520" />
 
 **Микросервис, ловит WebSocket-сообщения с порта и отправляет их на email.**
 
