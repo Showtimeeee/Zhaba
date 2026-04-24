@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from zhaba_app import EmailSender
+from src.email import EmailSender
 
 class TestEmailSender:
     
-    @patch('zhaba_app.smtplib.SMTP')
+    @patch('src.email.sender.smtplib.SMTP')
     def test_send_email_success(self, mock_smtp, email_config):
         email_sender = EmailSender(email_config)
         mock_server = MagicMock()
@@ -15,7 +15,7 @@ class TestEmailSender:
         assert result == True
         mock_server.login.assert_called_once_with('test@example.com', 'password123')
     
-    @patch('zhaba_app.smtplib.SMTP')
+    @patch('src.email.sender.smtplib.SMTP')
     def test_send_email_auth_failure(self, mock_smtp, email_config):
         from smtplib import SMTPAuthenticationError
         email_sender = EmailSender(email_config)
