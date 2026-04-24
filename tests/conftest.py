@@ -13,7 +13,7 @@ class MockEmailSender:
         self.sent_emails = []
         self.fail = fail
     
-    def send_email(self, subject, message):
+    def send_email(self, subject, message, html=False, metadata=None):
         self.sent_emails.append((subject, message))
         return not self.fail
 
