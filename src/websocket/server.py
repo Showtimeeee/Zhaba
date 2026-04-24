@@ -127,7 +127,8 @@ class WebSocketServer:
             send_html = False
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        formatted_message = f"Получено: {timestamp}\nОт клиента: {client_id}\n\n{content}"
+        sender_prefix = f"Отправитель: {sender}\n\n" if sender != "Unknown" else ""
+        formatted_message = f"Получено: {timestamp}\nОт клиента: {client_id}\n\n{sender_prefix}{content}"
 
         metadata = {
             "timestamp": timestamp,
@@ -186,15 +187,27 @@ class WebSocketServer:
         return health
 
     async def start(self, queue_enabled: bool = False, queue_max_size: int = 1000):
+        from logger import logger
+
         if queue_enabled:
             self.enable_queue(queue_max_size)
-            from logger import logger
             logger.info(f"Message queue enabled, max size: {queue_max_size}")
 
         ssl_context = None
         if self.ssl_enabled and self.ssl_cert and self.ssl_key:
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ssl_context.load_cert_chain(self.ssl_cert, self.ssl_key)
+
+        logger.info("=" * 60)
+        logger.info("ZHABA-APP SERVER STARTING")
+        logger.info("=" * 60)
+        logger.info(f"Host: {self.host}")
+        logger.info(f"Port: {self.port}")
+        logger.info(f"Max connections: {self.max_connections}")
+        logger.info(f"Max message size: {self.max_message_size}")
+        logger.info(f"SSL: {'enabled' if self.ssl_enabled else 'disabled'}")
+        logger.info(f"Queue: {'enabled' if queue_enabled else 'disabled'}")
+        logger.info("=" * 60)
 
         self.server = await websockets.serve(
             self.handle_client,
@@ -207,6 +220,9 @@ class WebSocketServer:
         )
 
         protocol = "wss" if self.ssl_enabled else "ws"
+        logger.info(f"Server started: {protocol}://{self.host}:{self.port}")
+        logger.info("Waiting for connections...")
+
         asyncio.create_task(self.monitor_stats())
         asyncio.create_task(self.health_check_server())
 
