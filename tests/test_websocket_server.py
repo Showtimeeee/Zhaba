@@ -1,6 +1,6 @@
 import pytest
 import json
-from zhaba_app import WebSocketServer
+from src.websocket import WebSocketServer
 
 @pytest.mark.asyncio
 async def test_process_json_message(mock_websocket, mock_email_sender):
@@ -16,7 +16,8 @@ async def test_process_json_message(mock_websocket, mock_email_sender):
     
     assert len(mock_email_sender.sent_emails) == 1
     assert mock_email_sender.sent_emails[0][0] == 'Test'
-    assert 'Client' in mock_email_sender.sent_emails[0][1]
+    assert '127.0.0.1' in mock_email_sender.sent_emails[0][1]
+    assert 'Hello' in mock_email_sender.sent_emails[0][1]
 
 @pytest.mark.asyncio
 async def test_process_text_message(mock_websocket, mock_email_sender):
