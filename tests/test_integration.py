@@ -1,6 +1,6 @@
 import pytest
 import json
-from zhaba_app import WebSocketServer
+from src.websocket import WebSocketServer
 
 @pytest.mark.asyncio
 async def test_message_counter_increments(mock_websocket, mock_email_sender):
