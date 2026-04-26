@@ -3,7 +3,6 @@ import json
 from collections import deque
 from datetime import datetime
 from typing import Optional
-
 from src.email import EmailSender
 
 
@@ -36,23 +35,24 @@ class MessageQueue:
 
         self._processing = True
 
-        while self.queue:
-            item = self.queue[0]
-            success = email_sender.send_email(
-                item["subject"],
-                item["message"],
-                html=item["html"],
-                metadata=item["metadata"]
-            )
+        try:
+            while self.queue:
+                item = self.queue[0]
+                success = email_sender.send_email(
+                    item["subject"],
+                    item["message"],
+                    html=item["html"],
+                    metadata=item["metadata"]
+                )
 
-            if success:
-                self.queue.popleft()
-            else:
-                item["retries"] += 1
-                if item["retries"] >= self.max_retries:
-                    logger.error(f"Message failed after {self.max_retries} retries")
+                if success:
                     self.queue.popleft()
                 else:
-                    await asyncio.sleep(5)
-
-        self._processing = False
+                    item["retries"] += 1
+                    if item["retries"] >= self.max_retries:
+                        logger.error(f"Message failed after {self.max_retries} retries")
+                        self.queue.popleft()
+                    else:
+                        break
+        finally:
+            self._processing = False
