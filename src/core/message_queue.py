@@ -3,6 +3,7 @@ import json
 from collections import deque
 from datetime import datetime
 from typing import Optional
+
 from src.email import EmailSender
 
 
@@ -38,7 +39,7 @@ class MessageQueue:
         try:
             while self.queue:
                 item = self.queue[0]
-                success = email_sender.send_email(
+                success = await email_sender.send_email(
                     item["subject"],
                     item["message"],
                     html=item["html"],
