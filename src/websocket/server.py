@@ -156,7 +156,7 @@ class WebSocketServer:
                 await websocket.send(json.dumps(response, ensure_ascii=False))
                 return
 
-        success = self.email_sender.send_email(subject, formatted_message, html=send_html, metadata=metadata)
+        success = await self.email_sender.send_email(subject, formatted_message, html=send_html, metadata=metadata)
 
         response = {
             "status": "success" if success else "error",
