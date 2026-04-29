@@ -1,5 +1,6 @@
 import pytest
 
+
 class MockWebSocket:
     def __init__(self):
         self.sent_messages = []
@@ -8,12 +9,13 @@ class MockWebSocket:
     async def send(self, message):
         self.sent_messages.append(message)
 
+
 class MockEmailSender:
     def __init__(self, fail=False):
         self.sent_emails = []
         self.fail = fail
     
-    def send_email(self, subject, message, html=False, metadata=None):
+    async def send_email(self, subject, message, html=False, metadata=None):
         self.sent_emails.append((subject, message))
         return not self.fail
 
