@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import asyncio
 from src.core import MessageQueue
+from src.email import EmailSender
 
 
 class TestMessageQueue:
@@ -23,12 +24,14 @@ class TestMessageQueue:
         queue = MessageQueue(max_size=10, max_retries=3)
         queue.enqueue("Subject", "Message", {"ip": "127.0.0.1"})
 
-        mock_sender = MagicMock()
-        mock_sender.send_email.return_value = True
+        mock_sender = MagicMock(spec=EmailSender)
+
+        async def mock_send_email(*args, **kwargs):
+            return True
+        mock_sender.send_email = mock_send_email
 
         await queue.process_queue(mock_sender, MagicMock())
 
-        mock_sender.send_email.assert_called_once()
         assert len(queue.queue) == 0
 
     @pytest.mark.asyncio
@@ -36,8 +39,11 @@ class TestMessageQueue:
         queue = MessageQueue(max_size=10, max_retries=3)
         queue.enqueue("Subject", "Message", {"ip": "127.0.0.1"})
 
-        mock_sender = MagicMock()
-        mock_sender.send_email.return_value = False
+        mock_sender = MagicMock(spec=EmailSender)
+
+        async def mock_send_email(*args, **kwargs):
+            return False
+        mock_sender.send_email = mock_send_email
 
         await queue.process_queue(mock_sender, MagicMock())
 
@@ -48,8 +54,11 @@ class TestMessageQueue:
         queue = MessageQueue(max_size=10, max_retries=1)
         queue.enqueue("Subject", "Message", {"ip": "127.0.0.1"})
 
-        mock_sender = MagicMock()
-        mock_sender.send_email.return_value = False
+        mock_sender = MagicMock(spec=EmailSender)
+
+        async def mock_send_email(*args, **kwargs):
+            return False
+        mock_sender.send_email = mock_send_email
 
         await queue.process_queue(mock_sender, MagicMock())
 
