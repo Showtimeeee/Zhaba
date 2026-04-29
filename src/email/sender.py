@@ -1,9 +1,8 @@
 import os
-import smtplib
-import time
-from datetime import datetime
+import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate
 
 
 class EmailSender:
@@ -23,48 +22,42 @@ class EmailSender:
         with open(template_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def send_email(self, subject, message, html=False, metadata=None):
-        start_time = datetime.now()
-
+    async def send_email(self, subject, message, html=False, metadata=None):
         if metadata is None:
             metadata = {}
 
-        for attempt in range(self.max_retries):
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["From"] = self.email_from
-                msg["To"] = self.email_to
-                msg["Subject"] = subject[:100] if len(subject) > 100 else subject
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["From"] = self.email_from
+            msg["To"] = self.email_to
+            msg["Subject"] = subject[:100] if len(subject) > 100 else subject
+            msg["Date"] = formatdate(localtime=True)
 
-                if html:
-                    html_content = self.html_template.format(
-                        subject=subject,
-                        timestamp=metadata.get("timestamp", ""),
-                        sender=metadata.get("sender", "Unknown"),
-                        ip=metadata.get("ip", "Unknown"),
-                        message=message.replace("\n", "<br>")
-                    )
-                    msg.attach(MIMEText(message, "plain", "utf-8"))
-                    msg.attach(MIMEText(html_content, "html", "utf-8"))
-                else:
-                    msg.attach(MIMEText(message, "plain", "utf-8"))
+            if html:
+                html_content = self.html_template.format(
+                    subject=subject,
+                    timestamp=metadata.get("timestamp", ""),
+                    sender=metadata.get("sender", "Unknown"),
+                    ip=metadata.get("ip", "Unknown"),
+                    message=message.replace("\n", "<br>")
+                )
+                msg.attach(MIMEText(message, "plain", "utf-8"))
+                msg.attach(MIMEText(html_content, "html", "utf-8"))
+            else:
+                msg.attach(MIMEText(message, "plain", "utf-8"))
 
-                with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=30) as server:
-                    server.starttls()
-                    server.login(self.email_from, self.email_password)
-                    server.send_message(msg)
+            smtp = aiosmtplib.SMTP(hostname=self.smtp_server, port=self.smtp_port, timeout=30)
+            await smtp.connect()
+            await smtp.starttls()
+            await smtp.login(self.email_from, self.email_password)
+            await smtp.send_message(msg)
+            await smtp.quit()
 
-                elapsed_time = (datetime.now() - start_time).total_seconds()
-                return True
+            return True
 
-            except smtplib.SMTPAuthenticationError:
-                return False
-            except (smtplib.SMTPException, OSError):
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay)
-                else:
-                    return False
-            except Exception:
-                return False
-
-        return False
+        except aiosmtplib.SMTPAuthenticationError:
+            return False
+        except (aiosmtplib.SMTPException, OSError):
+            return False
+        except Exception:
+            return False
