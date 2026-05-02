@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  zhaba-app:
+    build: .
+    ports:
+      - "8765:8765"
+      - "8766:8766"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./.env:/.env:ro
+    restart: unless-stopped
