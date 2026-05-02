@@ -84,6 +84,10 @@ LOG_FILE=zhaba.log
 LOG_LEVEL=DEBUG
 LOG_MAX_BYTES=10485760
 LOG_BACKUP_COUNT=5
+
+# Database
+# Database path is automatically set to data/zhaba.db
+# No need to configure, it will be created in the data volume
 ```
 
 ---
