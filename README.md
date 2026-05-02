@@ -30,6 +30,11 @@ pip install -r requirements.txt
 
 ---
 
+### Docker
+```bash
+docker-compose up -d
+```
+
 ## Запуск
 
 ```bash
@@ -181,9 +186,3 @@ await ws.send(json.dumps({
     'html': True
 }))
 ```
-
----
-
-## Лицензия
-
-MIT
