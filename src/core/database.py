@@ -8,16 +8,17 @@ class Database:
     _instance = None
     _lock = asyncio.Lock()
 
-    def __new__(cls, db_path: str = "zhaba.db"):
+    def __new__(cls, db_path: str = "data/zhaba.db"):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, db_path: str = "zhaba.db"):
+    def __init__(self, db_path: str = "data/zhaba.db"):
         if self._initialized:
             return
         self.db_path = db_path
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self._initialized = True
         self._init_db()
 
