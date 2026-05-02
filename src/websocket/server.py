@@ -3,10 +3,8 @@ import json
 import ssl
 import traceback
 from datetime import datetime
-
 import websockets
-
-from src.core import RateLimiter, MessageValidator
+from src.core import RateLimiter, MessageValidator, Database
 from src.core.message_queue import MessageQueue
 from src.email import EmailSender
 
@@ -36,6 +34,7 @@ class WebSocketServer:
         self.queue_enabled = False
         self._shutdown_event = asyncio.Event()
         self._is_shutting_down = False
+        self.db = Database()
 
     def enable_queue(self, max_size: int = 1000, max_retries: int = 3):
         self.message_queue = MessageQueue(max_size, max_retries)
@@ -136,9 +135,19 @@ class WebSocketServer:
             "ip": client_id
         }
 
+        message_id = self.db.add_message(
+            subject=subject,
+            message=content,
+            sender=sender,
+            ip=client_id,
+            html=send_html,
+            status='pending'
+        )
+
         if self.queue_enabled and self.message_queue:
             queued = self.message_queue.enqueue(subject, formatted_message, metadata, send_html)
             if queued:
+                self.db.update_message_status(message_id, 'queued')
                 response = {
                     "status": "queued",
                     "message": "Сообщение поставлено в очередь",
@@ -149,6 +158,7 @@ class WebSocketServer:
                 await websocket.send(json.dumps(response, ensure_ascii=False))
                 return
             else:
+                self.db.update_message_status(message_id, 'failed', 'Queue overflow')
                 response = {
                     "status": "error",
                     "message": "Очередь переполнена",
@@ -157,6 +167,11 @@ class WebSocketServer:
                 return
 
         success = await self.email_sender.send_email(subject, formatted_message, html=send_html, metadata=metadata)
+
+        if success:
+            self.db.update_message_status(message_id, 'sent')
+        else:
+            self.db.update_message_status(message_id, 'failed', 'Email send failed')
 
         response = {
             "status": "success" if success else "error",
@@ -180,6 +195,12 @@ class WebSocketServer:
             "connected_clients": len(self.connected_clients),
             "timestamp": datetime.now().isoformat(),
         }
+
+        try:
+            db_stats = self.db.get_stats()
+            health.update(db_stats)
+        except:
+            pass
 
         if self.queue_enabled and self.message_queue:
             health["queue_size"] = len(self.message_queue.queue)
