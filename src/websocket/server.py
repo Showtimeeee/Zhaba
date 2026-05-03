@@ -3,7 +3,9 @@ import json
 import ssl
 import traceback
 from datetime import datetime
+
 import websockets
+
 from src.core import RateLimiter, MessageValidator, Database
 from src.core.message_queue import MessageQueue
 from src.email import EmailSender
@@ -246,6 +248,14 @@ class WebSocketServer:
 
         asyncio.create_task(self.monitor_stats())
         asyncio.create_task(self.health_check_server())
+
+        self.webhook = WebhookHandler(self)
+        webhook_app = self.webhook.get_app()
+        webhook_runner = web.AppRunner(webhook_app)
+        await webhook_runner.setup()
+        webhook_site = web.TCPSite(webhook_runner, '127.0.0.1', 8080)
+        asyncio.create_task(webhook_site.start())
+        logger.info("Webhook server started: http://127.0.0.1:8080/webhook")
 
         if self.queue_enabled:
             asyncio.create_task(self._process_queue_loop())
