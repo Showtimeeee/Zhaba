@@ -3,10 +3,8 @@ import json
 import ssl
 import traceback
 from datetime import datetime
-
 import websockets
-
-from src.core import RateLimiter, MessageValidator, Database
+from src.core import RateLimiter, MessageValidator, Database, NotificationManager
 from src.core.message_queue import MessageQueue
 from src.email import EmailSender
 
@@ -37,6 +35,7 @@ class WebSocketServer:
         self._shutdown_event = asyncio.Event()
         self._is_shutting_down = False
         self.db = Database()
+        self.notification_manager = NotificationManager(self.email_sender)
 
     def enable_queue(self, max_size: int = 1000, max_retries: int = 3):
         self.message_queue = MessageQueue(max_size, max_retries)
@@ -174,6 +173,17 @@ class WebSocketServer:
             self.db.update_message_status(message_id, 'sent')
         else:
             self.db.update_message_status(message_id, 'failed', 'Email send failed')
+            self.error_count += 1
+
+            context = {
+                'subject': subject,
+                'client_id': client_id,
+                'sender': sender
+            }
+            await self.notification_manager.notify_critical_error(
+                f"Email send failed for message {self.message_count}",
+                context
+            )
 
         response = {
             "status": "success" if success else "error",
@@ -183,9 +193,6 @@ class WebSocketServer:
             "rate_limit_remaining": self.rate_limiter.get_remaining(client_id),
         }
         await websocket.send(json.dumps(response, ensure_ascii=False))
-
-        if not success:
-            self.error_count += 1
 
     async def get_health(self):
         uptime = (datetime.now() - self.start_time).total_seconds()
@@ -267,6 +274,10 @@ class WebSocketServer:
         while True:
             await asyncio.sleep(10)
             if self.message_queue and not self.message_queue.is_empty():
+                queue_size = len(self.message_queue.queue)
+                max_size = self.message_queue.max_size
+                if queue_size > max_size * self.notification_manager.queue_threshold_warning:
+                    await self.notification_manager.notify_queue_overflow(queue_size, max_size)
                 await self.message_queue.process_queue(self.email_sender, logger)
 
     async def health_check_server(self):
