@@ -12,7 +12,9 @@ class EmailSender:
         self.smtp_port = config["smtp_port"]
         self.email_from = config["email_from"]
         self.email_password = config["email_password"]
-        self.email_to = config["email_to"]
+        # Support multiple recipients separated by comma
+        email_to_raw = config["email_to"]
+        self.email_to_list = [addr.strip() for addr in email_to_raw.split(',') if addr.strip()]
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.html_template = self._load_template()
@@ -29,7 +31,7 @@ class EmailSender:
         try:
             msg = MIMEMultipart("alternative")
             msg["From"] = self.email_from
-            msg["To"] = self.email_to
+            msg["To"] = ", ".join(self.email_to_list)
             msg["Subject"] = subject[:100] if len(subject) > 100 else subject
             msg["Date"] = formatdate(localtime=True)
 
