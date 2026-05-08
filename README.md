@@ -10,9 +10,12 @@
 
 Zhaba-App принимает сообщения через WebSocket и пересылает их на email. Простой, надёжный микросервис с поддержкой очередей, SSL, аутентификации и валидации.
 
+---
+
 - **WebSocket сервер** — принимает сообщения в реальном времени
-- **Отправка email** — через SMTP с поддержкой HTML
+- **Отправка email** — через SMTP с поддержкой HTML (асинхронно через aiosmtplib)
 - **Очередь сообщений** — автоматический ретрай при недоступности SMTP
+- **База данных SQLite** — история сообщений с паттерном Singleton
 - **Rate limiting** — защита от спама и DDoS
 - **JSON валидация** — защита от некорректных данных
 - **SSL/TLS** — шифрованное WebSocket соединение (wss://)
@@ -24,19 +27,21 @@ Zhaba-App принимает сообщения через WebSocket и пере
 
 ## Установка
 
+### Локально
 ```bash
 pip install -r requirements.txt
 ```
-
----
 
 ### Docker
 ```bash
 docker-compose up -d
 ```
 
+---
+
 ## Запуск
 
+### Локально
 ```bash
 python zhaba_app.py
 ```
@@ -46,11 +51,71 @@ python zhaba_app.py
 python zhaba_app.py --host 0.0.0.0 --port 8765
 ```
 
+### Docker
+```bash
+docker-compose up -d
+```
+
+---
+
+## Webhook API
+
+Приложение поддерживает прием сообщений через HTTP POST.
+
+**Endpoint:** `http://127.0.0.1:8080/webhook`
+
+### Отправка сообщения
+
+```bash
+curl -X POST http://127.0.0.1:8080/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "Тест",
+    "message": "Привет от webhook!",
+    "sender": "API Client"
+  }'
+```
+
+### Успешный ответ
+
+```json
+{
+  "status": "success",
+  "message": "Сообщение отправлено",
+  "message_id": 1
+}
+```
+
+### Коды ответов
+
+- `200` — успех или сообщение поставлено в очередь
+- `400` — некорректный JSON или данные
+- `429` — превышен лимит запросов
+- `500` — ошибка отправки email
+- `503` — очередь переполнена
+
+### Проверка сервиса
+
+```bash
+curl http://127.0.0.1:8080/webhook
+```
+
+Ответ:
+```json
+{
+  "service": "Zhaba-App Webhook",
+  "status": "running",
+  "endpoints": {
+    "POST /webhook": "Send message via HTTP POST"
+  }
+}
+```
+
 ---
 
 ## Конфигурация
 
-Создайте файл `.env` в корневой директории:
+Создайте файл `.env` в корневой директории или используйте пример:
 
 ```ini
 # Email
@@ -143,6 +208,22 @@ LOG_BACKUP_COUNT=5
   "connected_clients": 5,
   "timestamp": "2024-01-01T12:00:00.000000"
 }
+```
+
+---
+
+## Архитектура
+
+```
+src/
+├── core/               # Утилиты
+│   ├── rate_limiter.py    # Лимит запросов
+│   ├── validator.py       # Валидация JSON
+│   └── message_queue.py  # Очередь с ретраями
+├── email/
+│   └── sender.py      # Отправка email
+└── websocket/
+    └── server.py     # WebSocket сервер
 ```
 
 ---
