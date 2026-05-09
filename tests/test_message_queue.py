@@ -25,6 +25,7 @@ class TestMessageQueue:
         queue.enqueue("Subject", "Message", {"ip": "127.0.0.1"})
 
         mock_sender = MagicMock(spec=EmailSender)
+        mock_sender.email_to_list = ['test@example.com']
 
         async def mock_send_email(*args, **kwargs):
             return True
@@ -40,6 +41,7 @@ class TestMessageQueue:
         queue.enqueue("Subject", "Message", {"ip": "127.0.0.1"})
 
         mock_sender = MagicMock(spec=EmailSender)
+        mock_sender.email_to_list = ['test@example.com']
 
         async def mock_send_email(*args, **kwargs):
             return False
@@ -55,6 +57,7 @@ class TestMessageQueue:
         queue.enqueue("Subject", "Message", {"ip": "127.0.0.1"})
 
         mock_sender = MagicMock(spec=EmailSender)
+        mock_sender.email_to_list = ['test@example.com']
 
         async def mock_send_email(*args, **kwargs):
             return False
