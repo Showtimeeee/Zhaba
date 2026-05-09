@@ -13,11 +13,16 @@ def app(webhook_handler):
 def webhook_handler():
     mock_sender = MagicMock()
     mock_sender.send_email = AsyncMock(return_value=True)
+    mock_sender.email_to_list = ['recipient@example.com']
+    
+    mock_rate_limiter = MagicMock()
+    mock_rate_limiter.is_allowed.return_value = True
+    mock_rate_limiter.get_remaining.return_value = 0
+    mock_rate_limiter.max_per_minute = 60
     
     mock_server = MagicMock()
     mock_server.email_sender = mock_sender
-    mock_server.rate_limiter = MagicMock()
-    mock_server.rate_limiter.is_allowed.return_value = True
+    mock_server.rate_limiter = mock_rate_limiter
     mock_server.db = MagicMock()
     mock_server.db.add_message.return_value = 1
     mock_server.db.update_message_status = MagicMock()
