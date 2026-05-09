@@ -1,8 +1,10 @@
 import os
+import time
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate
+from src.core.logging_service import log
 
 
 class EmailSender:
@@ -12,12 +14,12 @@ class EmailSender:
         self.smtp_port = config["smtp_port"]
         self.email_from = config["email_from"]
         self.email_password = config["email_password"]
-        # Support multiple recipients separated by comma
         email_to_raw = config["email_to"]
         self.email_to_list = [addr.strip() for addr in email_to_raw.split(',') if addr.strip()]
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.html_template = self._load_template()
+        log.info("EmailSender", f"Initialized with {len(self.email_to_list)} recipient(s)", {"smtp_server": self.smtp_server, "smtp_port": self.smtp_port})
 
     def _load_template(self):
         template_path = os.path.join(os.path.dirname(__file__), "template.html")
@@ -27,6 +29,9 @@ class EmailSender:
     async def send_email(self, subject, message, html=False, metadata=None):
         if metadata is None:
             metadata = {}
+
+        start_time = time.time()
+        log.debug("EmailSender", f"Sending email: {subject}", {"recipients": self.email_to_list, "html": html})
 
         try:
             msg = MIMEMultipart("alternative")
@@ -55,11 +60,22 @@ class EmailSender:
             await smtp.send_message(msg)
             await smtp.quit()
 
+            duration_ms = (time.time() - start_time) * 1000
+            log.email_sent(subject, self.email_to_list, True, duration_ms)
             return True
 
         except aiosmtplib.SMTPAuthenticationError:
+            duration_ms = (time.time() - start_time) * 1000
+            log.email_sent(subject, self.email_to_list, False, duration_ms)
+            log.error("EmailSender", "Authentication failed", {"smtp_server": self.smtp_server})
             return False
-        except (aiosmtplib.SMTPException, OSError):
+        except (aiosmtplib.SMTPException, OSError) as e:
+            duration_ms = (time.time() - start_time) * 1000
+            log.email_sent(subject, self.email_to_list, False, duration_ms)
+            log.error("EmailSender", f"SMTP error: {str(e)}")
             return False
-        except Exception:
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            log.email_sent(subject, self.email_to_list, False, duration_ms)
+            log.error("EmailSender", f"Unexpected error: {str(e)}")
             return False
