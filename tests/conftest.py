@@ -14,6 +14,7 @@ class MockEmailSender:
     def __init__(self, fail=False):
         self.sent_emails = []
         self.fail = fail
+        self.email_to_list = ['recipient@example.com']
     
     async def send_email(self, subject, message, html=False, metadata=None):
         self.sent_emails.append((subject, message))
